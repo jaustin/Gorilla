@@ -28,9 +28,6 @@ static void blinky(void) {
 }   
 
 void app_start(int, char**){
-    static Serial pc(USBTX, USBRX);
-    pc.baud(115200);
-    
     printf("Hi");
 
     // Run a task in 1 second
