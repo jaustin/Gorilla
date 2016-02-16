@@ -52,7 +52,7 @@ The following example, which is the same as the mbed OS blinky, will use `minar`
 ```c
 #include "mbed-drivers/mbed.h"
 
-// If we use the Scheduler namespace we simplify our code later on
+// If we use the Scheduler class we simplify our code later on
 using minar::Scheduler;
 
 DigitalOut led(LED1);
@@ -63,8 +63,8 @@ static void blinky(void) {
 
 void app_start(int, char**){
 
-    // we don't need minar::Scheduler here because of the 'using' line above'
-    postCallback(blinky).period(minar::milliseconds(500));
+    // we don't need minar:: here because of the 'using' line above'
+    Scheduler::postCallback(blinky).period(minar::milliseconds(500));
 
 }   
 
@@ -80,7 +80,7 @@ This example uses the InterruptIn class from mbed, but defers all the work to MI
 InterruptIn button(BUTTON1);
 DigitalOut  led(LED1);
 
-// If we use the Scheduler namespace we simplify our code later on
+// If we use the Schedur class from the minar namespace we simplify our code later on
 using minar::Scheduler;
 
 void buttonTask() {
@@ -89,7 +89,7 @@ void buttonTask() {
 }
 
 void buttonISR() {
-    postCallback(buttonTask);
+    Scheduler::postCallback(buttonTask);
 }
 
 void app_start(int, char *[]) {
@@ -97,3 +97,37 @@ void app_start(int, char *[]) {
 }
 ```
 
+## Cancel a callback
+
+In order to cancel a callback that we've previously scheduled, we need a handle to it. We can do this by calling the getHandle() method on the object returned by postCallback. You can read the details of this implementation in [the MINAR docs](https://github.com/ARMmbed/minar).
+
+```C++
+#include "mbed-drivers/mbed.h"
+
+using minar::Scheduler;
+
+InterruptIn button(p17);
+DigitalOut  led(p22);
+
+static minar::callback_handle_t handle = 0;
+
+static void blinky(void) {
+    led = !led;
+}
+
+void buttonTask() {
+    /* minar doesn't break if the handle is stale, so we can call this >once */
+    Scheduler::cancelCallback(handle);
+}
+
+void buttonISR() {
+    Scheduler::postCallback(buttonTask);
+}
+
+void app_start(int, char**){
+    button.fall(buttonISR);
+    handle = Scheduler::postCallback(blinky)
+              .period(minar::milliseconds(500))
+              .getHandle();
+}
+```
